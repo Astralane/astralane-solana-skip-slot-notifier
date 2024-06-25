@@ -179,14 +179,14 @@ async fn slot_stream(mut leader_slots: Vec<u64>, api: &String, webhook: Webhook)
                         let slot_diff=current_slot-ls;
                         if slot_diff > 16{
                             unknown_slots+=1;
-                            leader_slots.remove(0);
+                            leader_slots.remove(0);                    
                             println!("unknown slots{leader_slots:?}");                    
                         }else if slot_diff > 8{
                             skipped_slots+=1;
                             let msg=format!("skipped slot {} total skip= {skipped_slots}",leader_slots[0]);
                             leader_slots.remove(0);
                             let builder = ExecuteWebhook::new().content(msg).username("Slot bot");
-                            webhook.execute(&http, false, builder);  
+                            webhook.execute(&http, false, builder).await.expect("Could not execute webhook.");;  
                             println!("skipped slots {leader_slots:?}");   
                             break;                 
                         }
