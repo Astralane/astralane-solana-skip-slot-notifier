@@ -2,6 +2,7 @@ FROM rust:1.79 as build
 
 WORKDIR /usr/src/app
 COPY . .
+RUN ls -lart
 RUN cargo build --release
 
 FROM alpine:3.20
