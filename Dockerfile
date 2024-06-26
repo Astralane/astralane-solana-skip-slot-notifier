@@ -6,12 +6,11 @@ RUN ls -lart
 RUN cargo build --release
 RUN ls -lart /usr/src/app/target/release/
 RUN pwd
-FROM alpine:3.20
+FROM rust:1.79
 
 ENV API=api.testnet.solana.com
-RUN addgroup -S nonrootuser && adduser -S nonrootuser -G nonrootuser
 WORKDIR /home/nonrootuser
-
+RUN groupadd -r nonrootuser && useradd -m -r -g nonrootuser nonrootuser
 COPY --from=build /usr/src/app/target/release/slot_bot .
 USER nonrootuser
 # set the startup command to run your binary
