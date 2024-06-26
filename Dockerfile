@@ -12,7 +12,7 @@ ENV API=api.testnet.solana.com
 RUN addgroup -S nonrootuser && adduser -S nonrootuser -G nonrootuser
 WORKDIR /home/nonrootuser
 
-COPY --from=build /usr/src/app/target/release/astralane-slot-skip-bot .
+COPY --from=build /usr/src/app/target/release/slot_bot .
 USER nonrootuser
 # set the startup command to run your binary
-ENTRYPOINT ["/home/nonrootuser/astralane-slot-skip-bot"]
+ENTRYPOINT ["/home/nonrootuser/slot_bot"]
