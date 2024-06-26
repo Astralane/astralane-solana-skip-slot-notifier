@@ -4,7 +4,8 @@ WORKDIR /usr/src/app
 COPY . .
 RUN ls -lart
 RUN cargo build --release
-
+RUN ls -lart
+RUN pwd
 FROM alpine:3.20
 
 ENV API=api.testnet.solana.com
