@@ -1,4 +1,4 @@
-FROM rust:alpine3.20 as build
+FROM rust:1.79 as build
 
 WORKDIR /usr/src/app
 COPY . .
