@@ -4,7 +4,7 @@ WORKDIR /usr/src/app
 COPY . .
 RUN ls -lart
 RUN cargo build --release
-RUN ls -lart
+RUN ls -lart /usr/src/app/target/release/
 RUN pwd
 FROM alpine:3.20
 
