@@ -7,9 +7,7 @@ use tokio_tungstenite::tungstenite::protocol::Message;
 use futures_util::{StreamExt,SinkExt};
 use serde_json;
 use serde::{Serialize,Deserialize};
-use std::cmp::Ordering;
 use reqwest;
-use std::sync::Arc;
 
 
 #[derive(Serialize)]
@@ -21,7 +19,6 @@ struct BlockProduction{
 #[derive(Deserialize,Debug)]
 struct BlockInfo{
     result: EpochValue,
-    id: i32
 }
 #[derive(Deserialize,Debug)]
 struct EpochValue{
@@ -39,7 +36,6 @@ struct EpochRange{
 #[derive(Deserialize,Debug)]
 struct LsResult{
     result: Ls,
-    id: i32
 }
 #[derive(Deserialize,Debug)]
 struct Ls{
@@ -79,18 +75,27 @@ async fn main() {
     let webhook = Webhook::from_url(&http, &token.to_string())
         .await
         .unwrap();
-
-
-    let (first_slot,last_slot)=fetch_boundaries(&api_endpoint).await;
-    let msg=format!("first and last slot for the epoch is {first_slot} {last_slot}");
-    let builder = ExecuteWebhook::new().content(msg).username("Slot bot");
-    webhook.execute(&http, false, builder).await.expect("Could not execute webhook.");
-    let leader_slots: Vec<u64> = Vec::new();
-    let leader_slots=fetch_leader(&api_endpoint,leader_slots,&first_slot).await;
-    let (completed_slots,skipped_slots,unknown_slots,total_slots) = slot_stream(leader_slots,&api_endpoint,webhook.clone()).await;
-    let msg=format!("completed ={completed_slots}, skipped ={skipped_slots}, unknown = {unknown_slots}, total = {total_slots}");
-    let builder = ExecuteWebhook::new().content(msg).username("Slot bot");
-    webhook.execute(&http, false, builder).await.expect("Could not execute webhook.");    
+    let mut prev_first_slot:u64 =0;
+    loop {
+        
+        let (first_slot,last_slot)=fetch_boundaries(&api_endpoint).await;
+        if prev_first_slot!=first_slot{
+            let msg=format!("first and last slot for the epoch is {first_slot} {last_slot}");
+            let builder = ExecuteWebhook::new().content(msg).username("Slot bot");
+            webhook.execute(&http, false, builder).await.expect("Could not execute webhook.");
+            let leader_slots: Vec<u64> = Vec::new();
+            let leader_slots=fetch_leader(&api_endpoint,leader_slots,&first_slot).await;
+            let (completed_slots,skipped_slots,unknown_slots,total_slots) = slot_stream(leader_slots,&api_endpoint,webhook.clone()).await;
+            let msg=format!("completed ={completed_slots}, skipped ={skipped_slots}, unknown = {unknown_slots}, total = {total_slots}");
+            let builder = ExecuteWebhook::new().content(msg).username("Slot bot");
+            webhook.execute(&http, false, builder).await.expect("Could not execute webhook."); 
+            prev_first_slot=first_slot;             
+        }else{
+            todo!();//dont do anything as all slots are over and nothing is there to do NEED TO OPTIMIZE
+        }
+         
+    }
+        
 
 }
 // 2) get leader schedule for that epoch and get total number of slots
@@ -169,33 +174,37 @@ async fn slot_stream(mut leader_slots: Vec<u64>, api: &String, webhook: Webhook)
                 let m = m.into_text().expect("failed to convert to a string");
                 let m = m.as_str(); 
                 let v:SolanaApiOutput = serde_json::from_str(&m).expect("cannot unpack");
-                let current_slot=v.params.result.slot;
+                current_slot=v.params.result.slot;
                 let mut len_vec: usize=leader_slots.len();
-                while len_vec > 0{// TODO restructure so that you first remove unknown then do evenrthing without a loop
+                let mut index =0;
+                while index < len_vec{// TODO restructure so that you first remove unknown then do evenrthing without a loop
 
                    
-                    let ls=leader_slots[0];
+                    let ls=leader_slots[index];
                     if current_slot > ls  { //don't know what happend could have started the code half way through the epoch
                         let slot_diff=current_slot-ls;
                         if slot_diff > 16{
                             unknown_slots+=1;
                             leader_slots.remove(0);                    
-                            println!("unknown slots{leader_slots:?}");                    
+                            println!("unknown slots{leader_slots:?}");
+                            index=0;                    
                         }else if slot_diff > 8{
                             skipped_slots+=1;
                             let msg=format!("skipped slot {} total skip= {skipped_slots}",leader_slots[0]);
                             leader_slots.remove(0);
                             let builder = ExecuteWebhook::new().content(msg).username("Slot bot");
-                            webhook.execute(&http, false, builder).await.expect("Could not execute webhook.");;  
+                            webhook.execute(&http, false, builder).await.expect("Could not execute webhook.");  
                             println!("skipped slots {leader_slots:?}");   
-                            break;                 
+                            index+=1;                 
                         }
                     }else if current_slot==ls {
                         completed_slots+=1;
                         leader_slots.remove(0);
                          println!("completed slots {leader_slots:?}");
+                
                          break;
                     }else{
+                       
                         break;
                     }
                     len_vec=leader_slots.len();  
