@@ -1,4 +1,4 @@
-FROM rust:1.79-slim-buster as build
+FROM rust:alpine3.20 as build
 
 WORKDIR /usr/src/app
 COPY . .
