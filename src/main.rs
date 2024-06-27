@@ -8,7 +8,7 @@ use futures_util::{StreamExt,SinkExt};
 use serde_json;
 use serde::{Serialize,Deserialize};
 use reqwest;
-
+use std::{thread, time::Duration};
 
 #[derive(Serialize)]
 struct BlockProduction{
@@ -91,7 +91,7 @@ async fn main() {
             webhook.execute(&http, false, builder).await.expect("Could not execute webhook."); 
             prev_first_slot=first_slot;             
         }else{
-        
+            thread::sleep(Duration::from_millis(5000));
         }
          
     }
