@@ -101,7 +101,6 @@ async fn main() {
 // 2) get leader schedule for that epoch and get total number of slots
 async fn fetch_boundaries(api: &String)-> (u64,u64){
     let http_api=format!("https://{}",api);
-    println!("{http_api}");
     let bp=BlockProduction{
         jsonrpc:"2.0".to_string(),
         id:1,
