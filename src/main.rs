@@ -166,22 +166,22 @@ async fn slot_stream(mut leader_slots: Vec<u64>, api: &String, webhook: Webhook)
     let mut unknown_slots =0;
     let total_slots=leader_slots.len();
     let last_slot=leader_slots[leader_slots.len()-1]+8;//buffer incase you skip the last slot d
-    while current_slot < last_slot{
+    while current_slot < last_slot{// 0
         let mm=r.next().await.unwrap();
         match mm{
             Ok(m) => {
                 let m = m.into_text().expect("failed to convert to a string");
                 let m = m.as_str(); 
                 let v:SolanaApiOutput = serde_json::from_str(&m).expect("cannot unpack");
-                current_slot=v.params.result.slot;
+                current_slot=v.params.result.slot;//93
                 let mut len_vec: usize=leader_slots.len();
                 let mut index =0;
                 while index < len_vec{// TODO restructure so that you first remove unknown then do evenrthing without a loop
 
                    
-                    let ls=leader_slots[index];
+                    let ls=leader_slots[index];//92
                     if current_slot > ls  { //don't know what happend could have started the code half way through the epoch
-                        let slot_diff=current_slot-ls;
+                        let slot_diff=current_slot-ls;//1
                         if slot_diff > 16{
                             unknown_slots+=1;
                             leader_slots.remove(0);                    
@@ -195,6 +195,9 @@ async fn slot_stream(mut leader_slots: Vec<u64>, api: &String, webhook: Webhook)
                             webhook.execute(&http, false, builder).await.expect("Could not execute webhook.");  
                             println!("skipped slots {leader_slots:?}");   
                             index+=1;                 
+                        }else{
+                            println!("potential skipe slot {ls} {current_slot}");
+                            index+=1;
                         }
                     }else if current_slot==ls {
                         completed_slots+=1;
