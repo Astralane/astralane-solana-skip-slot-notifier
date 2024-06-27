@@ -91,7 +91,7 @@ async fn main() {
             webhook.execute(&http, false, builder).await.expect("Could not execute webhook."); 
             prev_first_slot=first_slot;             
         }else{
-            todo!();//dont do anything as all slots are over and nothing is there to do NEED TO OPTIMIZE
+        
         }
          
     }
