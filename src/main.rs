@@ -64,6 +64,7 @@ struct SolanaApiResult{
 #[derive(Deserialize,Debug)]
 struct SolanaApiSlot{
     slot:u64,
+    parent: u64 //trying wnith parent as there was false positive in slot    
 }
 #[tokio::main]
 async fn main() {
@@ -173,7 +174,7 @@ async fn slot_stream(mut leader_slots: Vec<u64>, api: &String, webhook: Webhook)
                 let m = m.into_text().expect("failed to convert to a string");
                 let m = m.as_str(); 
                 let v:SolanaApiOutput = serde_json::from_str(&m).expect("cannot unpack");
-                current_slot=v.params.result.slot;//93
+                current_slot=v.params.result.parent;//chnaged from slots to parent for addded commitment
                 let mut len_vec: usize=leader_slots.len();
                 let mut index =0;
                 while index < len_vec{// TODO restructure so that you first remove unknown then do evenrthing without a loop
