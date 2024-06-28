@@ -39,7 +39,7 @@ struct LsResult{
 }
 #[derive(Deserialize,Debug)]
 struct Ls{
-    SscQkTYV2BFQYGGffAmTzvefrFrw6z9GNYiWHstVZ77: Option<Vec<u64>> // <------------------------------------ change this to yours
+    DevBQDYfHJSnnmA7kkeFgE9dekK1gaGazynZcjgxA577: Option<Vec<u64>> // <------------------------------------ change this to yours
 }
 #[derive(Serialize)]
 struct LBP{
@@ -121,13 +121,13 @@ async fn fetch_leader(api: &String,mut ls: Vec<u64>,base: &u64) -> Vec<u64>{
         jsonrpc:"2.0".to_string(),
         id:1,
         method:"getLeaderSchedule".to_string(),
-        params:[LBI{identity:"SscQkTYV2BFQYGGffAmTzvefrFrw6z9GNYiWHstVZ77".to_string()}] //  <--------------------- change this to yours     
+        params:[LBI{identity:"DevBQDYfHJSnnmA7kkeFgE9dekK1gaGazynZcjgxA577".to_string()}] //  <--------------------- change this to yours     
     }; //to lazy to make structs out of this 
     let http_api=format!("https://{}",api);
     let client=reqwest::Client::new();
     let res=client.post(http_api).json(&body).send().await.expect("cannot send post req");
     let res: LsResult=res.json().await.expect("cannot parse leader");
-    match res.result.SscQkTYV2BFQYGGffAmTzvefrFrw6z9GNYiWHstVZ77 { // <----------------------------- change this to yours
+    match res.result.DevBQDYfHJSnnmA7kkeFgE9dekK1gaGazynZcjgxA577 { // <----------------------------- change this to yours
         Some(T) => {
             for i in T.iter(){
                 let final_slot=i+base;
@@ -185,13 +185,12 @@ async fn slot_stream(mut leader_slots: Vec<u64>, api: &String, webhook: Webhook)
                         let slot_diff=current_slot-ls;//1
                         if slot_diff > 16{
                             unknown_slots+=1;
-                            leader_slots.remove(0);                    
+                            leader_slots.remove(index);                    
                             println!("unknown slots{leader_slots:?}");
-                            index=0;                    
                         }else if slot_diff > 8{
                             skipped_slots+=1;
                             let msg=format!("skipped slot {} total skip= {skipped_slots}",leader_slots[0]);
-                            leader_slots.remove(0);
+                            leader_slots.remove(index);
                             let builder = ExecuteWebhook::new().content(msg).username("Slot bot");
                             webhook.execute(&http, false, builder).await.expect("Could not execute webhook.");  
                             println!("skipped slots {leader_slots:?}");   
@@ -202,7 +201,7 @@ async fn slot_stream(mut leader_slots: Vec<u64>, api: &String, webhook: Webhook)
                         }
                     }else if current_slot==ls {
                         completed_slots+=1;
-                        leader_slots.remove(0);
+                        leader_slots.remove(index);
                          println!("completed slots {leader_slots:?}");
                 
                          break;
@@ -214,7 +213,7 @@ async fn slot_stream(mut leader_slots: Vec<u64>, api: &String, webhook: Webhook)
                 }
 
             }
-            Err(_) => println!("websocket issue")
+            Err(_) => {println!("websocket issue"); continue}
         }
 
         
