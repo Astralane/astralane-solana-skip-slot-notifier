@@ -8,7 +8,7 @@ RUN ls -lart /usr/src/app/target/release/
 RUN pwd
 FROM rust:1.79
 
-ENV API=api.testnet.solana.com
+ENV API=api.mainnet-beta.solana.com
 WORKDIR /home/nonrootuser
 RUN groupadd -r nonrootuser && useradd -m -r -g nonrootuser nonrootuser
 COPY --from=build /usr/src/app/target/release/slot_bot .

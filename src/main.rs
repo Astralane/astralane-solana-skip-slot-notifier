@@ -39,7 +39,7 @@ struct LsResult{
 }
 #[derive(Deserialize,Debug)]
 struct Ls{
-    DevBQDYfHJSnnmA7kkeFgE9dekK1gaGazynZcjgxA577: Option<Vec<u64>>
+    SscQkTYV2BFQYGGffAmTzvefrFrw6z9GNYiWHstVZ77: Option<Vec<u64>> // <------------------------------------ change this to yours
 }
 #[derive(Serialize)]
 struct LBP{
@@ -121,13 +121,13 @@ async fn fetch_leader(api: &String,mut ls: Vec<u64>,base: &u64) -> Vec<u64>{
         jsonrpc:"2.0".to_string(),
         id:1,
         method:"getLeaderSchedule".to_string(),
-        params:[LBI{identity:"DevBQDYfHJSnnmA7kkeFgE9dekK1gaGazynZcjgxA577".to_string()}]       
+        params:[LBI{identity:"SscQkTYV2BFQYGGffAmTzvefrFrw6z9GNYiWHstVZ77".to_string()}] //  <--------------------- change this to yours     
     }; //to lazy to make structs out of this 
     let http_api=format!("https://{}",api);
     let client=reqwest::Client::new();
     let res=client.post(http_api).json(&body).send().await.expect("cannot send post req");
     let res: LsResult=res.json().await.expect("cannot parse leader");
-    match res.result.DevBQDYfHJSnnmA7kkeFgE9dekK1gaGazynZcjgxA577 {
+    match res.result.SscQkTYV2BFQYGGffAmTzvefrFrw6z9GNYiWHstVZ77 { // <----------------------------- change this to yours
         Some(T) => {
             for i in T.iter(){
                 let final_slot=i+base;
