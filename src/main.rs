@@ -151,7 +151,7 @@ async fn slot_stream(mut leader_slots: Vec<u64>, api: &String, webhook: Webhook)
                 if slot_up.status !=0{
                     continue    ;
                 }
-                println!("{slot_up:?}");
+                //println!("{slot_up:?}");
                 current_slot=slot_up.slot;//chnaged from slots to parent for addded commitment
                 let mut len_vec: usize=leader_slots.len();
                 let mut index =0;
