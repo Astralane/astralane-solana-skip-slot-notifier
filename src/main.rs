@@ -149,8 +149,9 @@ async fn slot_stream(mut leader_slots: Vec<u64>, api: &String, webhook: Webhook)
             Ok(m) => {
                 let slot_up=m.unwrap().slot_update.expect("cannot unwrap slot_update");
                 if slot_up.status !=0{
-                    break;
+                    continue    ;
                 }
+                println!("{slot_up:?}");
                 current_slot=slot_up.slot;//chnaged from slots to parent for addded commitment
                 let mut len_vec: usize=leader_slots.len();
                 let mut index =0;
@@ -164,7 +165,7 @@ async fn slot_stream(mut leader_slots: Vec<u64>, api: &String, webhook: Webhook)
                             unknown_slots+=1;
                             leader_slots.remove(index);                    
                             println!("unknown slots{leader_slots:?}");
-                        }else if slot_diff > 8{
+                        }else if slot_diff > 4{
                             skipped_slots+=1;
                             let msg=format!("skipped slot {} total skip= {skipped_slots}",leader_slots[0]);
                             leader_slots.remove(index);
