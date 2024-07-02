@@ -190,8 +190,14 @@ async fn slot_stream(mut leader_slots: Vec<u64>, api: &String, webhook: Webhook)
                 }
 
             }
-            Err(e) => {println!("grpc issue");
-                println!("{e:?}");
+            Err(e) => {
+                println!("grpc issue");
+                thread::sleep(Duration::from_millis(500000));
+                let endpoint = Endpoint::from_str(&grpc_api).unwrap();
+                println!("Reconnected to grpc!!!");
+                let channel = endpoint.connect().await.expect("cannot connect to channel");
+                let mut client = GeyserClient::with_interceptor(channel, intrcptr);
+                let mut stream = client.subscribe_slot_updates(SubscribeSlotUpdateRequest {}).await.expect("couldn't get stream").into_inner();
                 continue
                 }
         }
