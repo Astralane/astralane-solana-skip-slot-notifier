@@ -167,13 +167,13 @@ async fn slot_stream(mut leader_slots: Vec<u64>, api: &String, webhook: Webhook)
                             println!("unknown slots{leader_slots:?}");
                         }else if slot_diff > 4{
                             skipped_slots+=1;
-                            let msg=format!("skipped slot {} total skip= {skipped_slots}",leader_slots[0]);
+                            let msg=format!("skipped slot {} total skip= {skipped_slots} % of skipped = {}",leader_slots[index],skipped_slots as f32/total_slots as f32);
                             leader_slots.remove(index);
                             webhook.execute(&http, false, |w| w.content(msg)).await.expect("Could not execute webhook.");
                             println!("skipped slots {leader_slots:?}");   
-                            index+=1;                 
+                            //index+=1; when popped off then we don't need to increase the index                
                         }else{
-                            println!("potential skipe slot {ls} {current_slot}");
+                            println!("potential skip slot {ls} {current_slot}");
                             index+=1;
                         }
                     }else if current_slot==ls {
