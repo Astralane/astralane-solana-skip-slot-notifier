@@ -39,7 +39,7 @@ struct LsResult{
 }
 #[derive(Deserialize,Debug)]
 struct Ls{
-    DevBQDYfHJSnnmA7kkeFgE9dekK1gaGazynZcjgxA577: Option<Vec<u64>> // <------------------------------------ change this to yours
+    SscQkTYV2BFQYGGffAmTzvefrFrw6z9GNYiWHstVZ77: Option<Vec<u64>> // <------------------------------------ change this to yours
 }
 #[derive(Serialize)]
 struct LBP{
@@ -106,13 +106,13 @@ async fn fetch_leader(api: &String,mut ls: Vec<u64>,base: &u64) -> Vec<u64>{
         jsonrpc:"2.0".to_string(),
         id:1,
         method:"getLeaderSchedule".to_string(),
-        params:[LBI{identity:"DevBQDYfHJSnnmA7kkeFgE9dekK1gaGazynZcjgxA577".to_string()}] //  <--------------------- change this to yours     
+        params:[LBI{identity:"SscQkTYV2BFQYGGffAmTzvefrFrw6z9GNYiWHstVZ77".to_string()}] //  <--------------------- change this to yours     
     }; //to lazy to make structs out of this 
     let http_api=format!("https://{}",api);
     let client=reqwest::Client::new();
     let res=client.post(http_api).json(&body).send().await.expect("cannot send post req");
     let res: LsResult=res.json().await.expect("cannot parse leader");
-    match res.result.DevBQDYfHJSnnmA7kkeFgE9dekK1gaGazynZcjgxA577 { // <----------------------------- change this to yours
+    match res.result.SscQkTYV2BFQYGGffAmTzvefrFrw6z9GNYiWHstVZ77 { // <----------------------------- change this to yours
         Some(T) => {
             for i in T.iter(){
                 let final_slot=i+base;
@@ -167,7 +167,7 @@ async fn slot_stream(mut leader_slots: Vec<u64>, api: &String, webhook: Webhook)
                             println!("unknown slots{leader_slots:?}");
                         }else if slot_diff > 4{
                             skipped_slots+=1;
-                            let msg=format!("skipped slot {} total skip= {skipped_slots} % of skipped = {}",leader_slots[index],skipped_slots as f32/total_slots as f32);
+                            let msg=format!("skipped slot {} total skip= {skipped_slots}, percent of slots skipped = {}",leader_slots[index],(skipped_slots as f32/total_slots as f32)*100);
                             leader_slots.remove(index);
                             webhook.execute(&http, false, |w| w.content(msg)).await.expect("Could not execute webhook.");
                             println!("skipped slots {leader_slots:?}");   
