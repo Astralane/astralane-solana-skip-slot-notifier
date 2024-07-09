@@ -1,0 +1,78 @@
+name: Testnet Pipeline
+on:
+  push:
+    branches: [ test ]
+  workflow_dispatch:
+jobs:
+  build-n-publish-image:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Inject slug/short variables
+        uses: rlespinasse/github-slug-action@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: me-south-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-n-push-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: prod-${{ github.run_number }}
+        shell: bash
+        run: |
+          docker build -t $ECR_REGISTRY/astralane-slot-skip-bot:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/astralane-slot-skip-bot:$IMAGE_TAG
+          echo $ECR_REGISTRY/astralane-slot-skip-bot:$IMAGE_TAG > image-name.txt
+
+      - name: 'Upload Artifact'
+        uses: actions/upload-artifact@v2
+        with:
+          name: image-name
+          path: image-name.txt
+          retention-days: 1
+
+  writeback:
+    needs: build-n-publish-image
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          repository: audacelabs/kube-cluster-state
+          ref: master
+          ssh-key: ${{ secrets.GIT_WRITEBACK_SSH_KEY }}
+
+      - name: Inject slug/short variables
+        uses: rlespinasse/github-slug-action@v4
+
+      - name: Setup Kustomize
+        uses: imranismail/setup-kustomize@v1
+
+      - name: Download a single artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: image-name
+
+      - name: Checkout updated image
+        shell: bash
+        run: |
+          git config user.name "Git Writeback"
+          git config user.email git-writeback@audacelabs.com
+          export IMAGE_NAME=$(<image-name.txt)
+          rm image-name.txt
+          cd deploy/business-apps/kustomize/$GITHUB_REPOSITORY_OWNER_PART_SLUG/astralane-slot-skip-bot/test
+          kustomize edit set image some-registry/some-repository=$IMAGE_NAME
+          git add .
+          git commit -m "Image updated 'astralane-slot-skip-bot | $GITHUB_REF_NAME | $GITHUB_RUN_NUMBER'"
+          git push
