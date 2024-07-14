@@ -68,11 +68,12 @@ async fn main() {
         
         let (first_slot,last_slot)=fetch_boundaries(&api_endpoint).await;
         if prev_first_slot!=first_slot{
-            let msg=format!("first and last slot for the epoch is {first_slot} {last_slot}");
-            webhook.execute(&http, false, |w| w.content(msg)).await.expect("Could not execute webhook.");
             let leader_slots: Vec<u64> = Vec::new();
             let leader_slots=fetch_leader(&api_endpoint,leader_slots,&first_slot).await;
-            let (completed_slots,skipped_slots,unknown_slots,total_slots) = slot_stream(leader_slots,&grpc_url,webhook.clone()).await;
+            let msg=format!("first and last slot for the epoch is {first_slot} {last_slot}, total slots for the new epoch is {}",leader_slots.len());
+            webhook.execute(&http, false, |w| w.content(msg)).await.expect("Could not execute webhook.");
+            let (completed_slots,skipped_slots,unknown_slots,total_slots,completed_slot_list) = slot_stream(leader_slots,&grpc_url,webhook.clone()).await;
+            //todo get rewards with the completed slots
             let msg=format!("completed ={completed_slots}, skipped ={skipped_slots}, unknown = {unknown_slots}, total = {total_slots}");
             webhook.execute(&http, false, |w| w.content(msg)).await.expect("Could not execute webhook."); 
             prev_first_slot=first_slot;             
@@ -127,7 +128,7 @@ async fn fetch_leader(api: &String,mut ls: Vec<u64>,base: &u64) -> Vec<u64>{
 
 //3) run a seperate thread for the wss and check a. we do not cross the last slot if so break b. if we sub to our slot then return completed else send a discod message
 
-async fn slot_stream(mut leader_slots: Vec<u64>, api: &String, webhook: Webhook) -> (i32,i32,i32,i32) {
+async fn slot_stream(mut leader_slots: Vec<u64>, api: &String, webhook: Webhook) -> (i32,i32,i32,i32, Vec<u64>) {
 
     let http = Http::new("");
     let grpc_api=format!("http://{}",api);
@@ -136,13 +137,14 @@ async fn slot_stream(mut leader_slots: Vec<u64>, api: &String, webhook: Webhook)
     let channel = endpoint.connect().await.expect("cannot connect to channel");
     let mut client = GeyserClient::with_interceptor(channel, intrcptr);
     let mut stream = client.subscribe_slot_updates(SubscribeSlotUpdateRequest {}).await.expect("couldn't get stream").into_inner();
-
+  
     let mut current_slot: u64 = 0;
-    let mut completed_slots = 0;
-    let mut skipped_slots = 0;
-    let mut unknown_slots =0;
+    let mut completed_slots: i32 = 0;
+    let mut skipped_slots:i32 = 0;
+    let mut unknown_slots:i32 =0;
     let total_slots=leader_slots.len();
     let last_slot=leader_slots[leader_slots.len()-1]+32;//buffer incase you skip the last slot d
+    let mut completed_slot_list: Vec<u64>= Vec::with_capacity(total_slots);
     while current_slot < last_slot{// 0
         let slot_grpc=stream.message().await;
         match slot_grpc{
@@ -167,7 +169,7 @@ async fn slot_stream(mut leader_slots: Vec<u64>, api: &String, webhook: Webhook)
                             println!("unknown slots{leader_slots:?}");
                         }else if slot_diff > 4{
                             skipped_slots+=1;
-                            let msg=format!("skipped slot {} total skip= {skipped_slots}, percentage of skipped slots = {}",leader_slots[index],(skipped_slots as f32/total_slots as f32)*100.0);
+                            let msg=format!("skipped slot {} total skip= {skipped_slots}, percent of slots skipped = {} and the current progress of the slot is {}",leader_slots[index],(skipped_slots /total_slots as i32)*100,((unknown_slots+skipped_slots+completed_slots)/total_slots as i32)/100);
                             leader_slots.remove(index);
                             webhook.execute(&http, false, |w| w.content(msg)).await.expect("Could not execute webhook.");
                             println!("skipped slots {leader_slots:?}");   
@@ -178,9 +180,9 @@ async fn slot_stream(mut leader_slots: Vec<u64>, api: &String, webhook: Webhook)
                         }
                     }else if current_slot==ls {
                         completed_slots+=1;
+                        completed_slot_list.push(leader_slots[index]);
                         leader_slots.remove(index);
                          println!("completed slots {leader_slots:?}");
-                
                          break;
                     }else{
                        
@@ -205,7 +207,7 @@ async fn slot_stream(mut leader_slots: Vec<u64>, api: &String, webhook: Webhook)
         
 
     }
-    (completed_slots,skipped_slots,unknown_slots,total_slots as i32)
+    (completed_slots,skipped_slots,unknown_slots,total_slots as i32,completed_slot_list)
 
 }
 fn intrcptr(request: tonic::Request<()>) -> Result<tonic::Request<()>, Status> {
@@ -213,6 +215,5 @@ fn intrcptr(request: tonic::Request<()>) -> Result<tonic::Request<()>, Status> {
 //            .insert("access-token", self.access_token.parse().unwrap());
         Ok(request)
 }
-
 
 
