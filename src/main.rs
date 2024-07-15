@@ -78,7 +78,7 @@ async fn main() {
             webhook.execute(&http, false, |w| w.content(msg)).await.expect("Could not execute webhook."); 
             prev_first_slot=first_slot;             
         }else{
-            thread::sleep(Duration::from_millis(5000));
+            thread::sleep(Duration::from_millis(20000));
         }
          
     }
@@ -96,7 +96,16 @@ async fn fetch_boundaries(api: &String)-> (u64,u64){
     //let req=serde_json::to_string(&bp).expect("couldn't convert json to string");
     let client=reqwest::Client::new();
     let res=client.post(http_api).json(&bp).send().await.expect("cannot send post req");
-    let res: BlockInfo=res.json().await.expect("cannot parse");
+    let res=res.json::<BlockInfo>().await;
+    let res:BlockInfo=match res {
+        Ok(x)=> x,
+        Err(_)=> {
+            let http_api=format!("https://{}",api);
+            thread::sleep(Duration::from_millis(5000));
+            let res=client.post(http_api.clone()).json(&bp).send().await.expect("cannot send post req");
+            res.json().await.expect("failed after retrying")
+        } 
+    };
     (res.result.value.range.firstSlot,res.result.value.range.lastSlot)
 
 }
